@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:shopping_list/data/categories.dart';
+import 'package:shopping_list/data/constant.dart';
 import 'package:shopping_list/models/category.dart';
-import 'package:shopping_list/models/grocery_item.dart';
+import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -19,17 +21,40 @@ class _NewItemState extends State<NewItem> {
   var _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
 
-  void _saveItem() {
+  void _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      Navigator.of(context).pop(
-        GroceryItem(
-          id: DateTime.now().toString(),
-          name: _enteredName,
-          quantity: _enteredQuantity,
-          category: _selectedCategory,
-        ),
-      );
+
+      try {
+        Uri uri = Uri.https(db, 'shopee.json');
+        print(uri);
+
+        final response = await http.post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'name': _enteredName,
+            'quantity': _enteredQuantity,
+            'category': _selectedCategory.title,
+          }),
+        );
+        print({
+          'code': response.statusCode,
+          'body': response.body,
+          'header': response.headers
+        });
+      } catch (e) {
+        print(e);
+      }
+
+      //   Navigator.of(context).pop(
+      //     GroceryItem(
+      //       id: DateTime.now().toString(),
+      //       name: _enteredName,
+      //       quantity: _enteredQuantity,
+      //       category: _selectedCategory,
+      //     ),
+      //   );
     }
   }
 
