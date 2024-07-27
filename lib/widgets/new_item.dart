@@ -1,6 +1,9 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/data/constant.dart';
 import 'package:shopping_list/models/category.dart';
@@ -29,7 +32,7 @@ class _NewItemState extends State<NewItem> {
         Uri uri = Uri.https(db, 'shopee.json');
         print(uri);
 
-        final response = await http.post(
+        Response response = await http.post(
           uri,
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
@@ -43,6 +46,10 @@ class _NewItemState extends State<NewItem> {
           'body': response.body,
           'header': response.headers
         });
+
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
       } catch (e) {
         print(e);
       }
