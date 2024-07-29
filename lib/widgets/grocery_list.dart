@@ -18,6 +18,7 @@ class GroceryList extends StatefulWidget {
 
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
+  Uri uriShopee = Uri.https(db, 'shopee.json');
   @override
   void initState() {
     _loadItem();
@@ -26,8 +27,7 @@ class _GroceryListState extends State<GroceryList> {
 
   void _loadItem() async {
     print('LOAD WORK');
-    Uri uri = Uri.https(db, 'shopee.json');
-    final response = await http.get(uri);
+    final response = await http.get(uriShopee);
     final Map decode = jsonDecode(response.body);
     List<GroceryItem> allData = [];
     for (final itemEntry in decode.entries) {
@@ -60,10 +60,19 @@ class _GroceryListState extends State<GroceryList> {
     _loadItem();
   }
 
-  void _removeItem(GroceryItem item) {
+  void _removeItem(GroceryItem item) async {
+    GroceryItem keepItem = item;
     setState(() {
       _groceryItems.remove(item);
     });
+    try {
+      Uri uriShopee = Uri.https(db, 'shopee/${item.id}.json');
+      await http.delete(uriShopee);
+    } catch (e) {
+      setState(() {
+        _groceryItems.add(keepItem);
+      });
+    }
   }
 
   @override
