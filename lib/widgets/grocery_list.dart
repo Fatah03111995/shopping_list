@@ -17,7 +17,7 @@ class GroceryList extends StatefulWidget {
 }
 
 class _GroceryListState extends State<GroceryList> {
-  List<GroceryItem> _groceryItems = [];
+  List<GroceryItem> groceryItems = [];
   Uri uriShopee = Uri.https(db, 'shopee.json');
   @override
   void initState() {
@@ -25,8 +25,7 @@ class _GroceryListState extends State<GroceryList> {
     super.initState();
   }
 
-  void _loadItem() async {
-    print('LOAD WORK');
+  Future<List<GroceryItem>> _loadItem() async {
     final response = await http.get(uriShopee);
     final Map decode = jsonDecode(response.body);
     List<GroceryItem> allData = [];
@@ -45,9 +44,8 @@ class _GroceryListState extends State<GroceryList> {
       );
     }
 
-    setState(() {
-      _groceryItems = allData;
-    });
+    Future.delayed(const Duration(milliseconds: 1000));
+    return allData;
   }
 
   void _addItem() async {
@@ -57,62 +55,78 @@ class _GroceryListState extends State<GroceryList> {
       ),
     );
 
-    _loadItem();
+    List<GroceryItem> item = await _loadItem();
+    setState(() {
+      groceryItems = item;
+    });
   }
 
   void _removeItem(GroceryItem item) async {
     GroceryItem keepItem = item;
     setState(() {
-      _groceryItems.remove(item);
+      groceryItems.remove(item);
     });
     try {
       Uri uriShopee = Uri.https(db, 'shopee/${item.id}.json');
       await http.delete(uriShopee);
     } catch (e) {
       setState(() {
-        _groceryItems.add(keepItem);
+        groceryItems.add(keepItem);
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget content = const Center(child: Text('No items added yet.'));
-
-    if (_groceryItems.isNotEmpty) {
-      content = ListView.builder(
-        itemCount: _groceryItems.length,
-        itemBuilder: (ctx, index) => Dismissible(
-          onDismissed: (direction) {
-            _removeItem(_groceryItems[index]);
-          },
-          key: ValueKey(_groceryItems[index].id),
-          child: ListTile(
-            title: Text(_groceryItems[index].name),
-            leading: Container(
-              width: 24,
-              height: 24,
-              color: _groceryItems[index].category.color,
+    return FutureBuilder(
+      future: _loadItem(),
+      builder: (context, snapshot) {
+        print(snapshot.connectionState);
+        Widget content = const Center(child: Text('No items added yet.'));
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          content = const Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
             ),
-            trailing: Text(
-              _groceryItems[index].quantity.toString(),
-            ),
-          ),
-        ),
-      );
-    }
+          );
+        }
+        if (snapshot.hasData) {
+          groceryItems = snapshot.data!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Your Groceries'),
-        actions: [
-          IconButton(
-            onPressed: _addItem,
-            icon: const Icon(Icons.add),
+          content = ListView.builder(
+            itemCount: groceryItems.length,
+            itemBuilder: (ctx, index) => Dismissible(
+              onDismissed: (direction) {
+                _removeItem(groceryItems[index]);
+              },
+              key: ValueKey(groceryItems[index].id),
+              child: ListTile(
+                title: Text(groceryItems[index].name),
+                leading: Container(
+                  width: 24,
+                  height: 24,
+                  color: groceryItems[index].category.color,
+                ),
+                trailing: Text(
+                  groceryItems[index].quantity.toString(),
+                ),
+              ),
+            ),
+          );
+        }
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Your Groceries'),
+            actions: [
+              IconButton(
+                onPressed: _addItem,
+                icon: const Icon(Icons.add),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: content,
+          body: content,
+        );
+      },
     );
   }
 }
